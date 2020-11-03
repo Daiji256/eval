@@ -160,8 +160,8 @@ double calc(char *str, int i)
 
 double calcfunc(char *str)
 {
-	char func[10];
-	int i;
+	char func[10], x[STR_LENGTH], y[STR_LENGTH], xy[STR_LENGTH], val[50];
+	int i, j, count;;
 	double tmp;
 	for (i = 0; !isoperator(*str) && *str != '(' && *str != ')'; i++)
 	{
@@ -173,6 +173,8 @@ double calcfunc(char *str)
 	printf("func: %s\n", func);
 	if (strcmp("abs", func) == 0) return fabs(eval(str));
 	if (strcmp("fabs", func) == 0) return fabs(eval(str));
+	if (strcmp("sqrt", func) == 0) return sqrt(eval(str));
+	if (strcmp("cbrt", func) == 0) return cbrt(eval(str));
 	if (strcmp("sin", func) == 0) return sin(eval(str));
 	if (strcmp("cos", func) == 0) return cos(eval(str));
 	if (strcmp("tan", func) == 0) return tan(eval(str));
@@ -188,6 +190,55 @@ double calcfunc(char *str)
 	if (strcmp("exp", func) == 0) return exp(eval(str));
 	if (strcmp("log", func) == 0) return log(eval(str));
 	if (strcmp("log10", func) == 0) return log10(eval(str));
+	if (strcmp("ceil", func) == 0) return ceil(eval(str));
+	if (strcmp("floor", func) == 0) return floor(eval(str));
+	if (strcmp("round", func) == 0) return round(eval(str));
+	xy[0] = '(';
+	x[0] = '(';
+	count = 0;
+	for (i = 1; count != 0 || str[i] != ','; i++)
+	{
+		if (str[i] == '(') count++;
+		else if (str[i] == ')') count--;
+		else if (str[i] == '\0') exit(EXIT_FAILURE);
+		x[i] = str[i];
+		xy[i] = str[i];
+	}
+	x[i] = ')';
+	x[i + 1] = '\0';
+	xy[i] = ',';
+	y[0] = '(';
+	count = 0;
+	for (j = 1; count != 0 || str[i + j] != ')'; j++)
+	{
+		if (str[i + j] == '(') count++;
+		else if (str[i + j] == ')') count--;
+		else if (str[i + j] == '\0') exit(EXIT_FAILURE);
+		y[j] = str[i + j];
+		xy[i + j] = str[i + j];
+	}
+	y[j] = ')';
+	y[j + 1] = '\0';
+	xy[i + j] = ')';
+	xy[i + j + 1] = '\0';
+
+	printf("x, y: %s, %s\n", x, y);
+	if (strcmp("pow", func) == 0) tmp =  pow(eval(x), eval(y));
+	if (strcmp("atan2", func) == 0) tmp =  atan2(eval(x), eval(y));
+	if (strcmp("hypot", func) == 0) tmp =  hypot(eval(x), eval(y));
+	if (strcmp("mod", func) == 0) tmp =  fmod(eval(x), eval(y));
+	if (strcmp("fmod", func) == 0) tmp =  fmod(eval(x), eval(y));
+	if (strcmp("dim", func) == 0) tmp =  fdim(eval(x), eval(y));
+	if (strcmp("fdim", func) == 0) tmp =  fdim(eval(x), eval(y));
+	if (strcmp("max", func) == 0) tmp =  fmax(eval(x), eval(y));
+	if (strcmp("fmax", func) == 0) tmp =  fmax(eval(x), eval(y));
+	if (strcmp("min", func) == 0) tmp =  fmin(eval(x), eval(y));
+	if (strcmp("fmin", func) == 0) tmp =  fmin(eval(x), eval(y));
+
+	if (tmp >= 0) sprintf(val, "%f", tmp);
+	else sprintf(val, "(%f)", tmp);
+	strrep(str, xy, val);
+
 	return 0;
 }
 
