@@ -16,7 +16,7 @@ void strrep(char str[], const char *bef, const char *aft)
 	char tmp[STR_LENGTH], *p;
 
 	p = str;
-	if (p = strstr(p, bef))
+	if ((p = strstr(p, bef)))
 	{
 		strcpy(tmp, p + strlen(bef));
 		*p = '\0';
