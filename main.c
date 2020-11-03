@@ -18,8 +18,8 @@ struct count
 void strrep(char str[], const char *bef, const char *aft);
 int isoperator(char c);
 char *getoperator(char *str);
-int calc(char *str, int i);
-int eval(char *str);
+double calc(char *str, int i);
+double eval(char *str);
 
 int isoperator(char c)
 {
@@ -40,11 +40,13 @@ char *getoperator(char *str)
 	return NULL;
 }
 
-int calc(char *str, int i)
+double calc(char *str, int i)
 {
-	int j, k,  tmp = 0, a, b;
+	int j, k;
+	double tmp = 0, a, b;
+	printf("calc: str = %s\n", str);
 
-	char exp[STR_LENGTH], val[10];
+	char exp[STR_LENGTH], val[50];
 
 	char *pl, *pr, *next;
 	//左辺の値の先頭pl、右辺の値の終端pr
@@ -66,15 +68,15 @@ int calc(char *str, int i)
 			a = eval(pl);
 			break;
 		}
-		else if (isdigit(str[j]))
+		else if (isdigit(str[j]) || str[j] == '.')
 		{
-			while (isdigit(str[j - 1]))
+			while (isdigit(str[j - 1]) || str[j - 1] == '.')
 			{
 				j--;
-				if (j == 0) exit(EXIT_FAILURE);
+				if (j == -1) exit(EXIT_FAILURE);
 			}
 			pl = str + j;
-			a = atoi(pl);
+			a = atof(pl);
 			break;
 		}
 		else if (str[j] == '(')
@@ -117,11 +119,11 @@ int calc(char *str, int i)
 					if (str[j] == '\0') exit(EXIT_FAILURE);
 				}
 			}
-			else if (isdigit(str[j])) while (isdigit(str[j + 1])) j++;
+			else if (isdigit(str[j]) || str[j] == '.') while (isdigit(str[j + 1]) || str[j + 1] == '.') j++;
 			else exit(EXIT_FAILURE);
 			break;
 		}
-		else if (isdigit(str[j]))
+		else if (isdigit(str[j]) || str[j] == '.')
 		{	//右辺値が数の場合
 			pr = str + j;   //右辺値先頭を保存
 			if (str[i] == '+' || str[i] == '-')
@@ -133,13 +135,13 @@ int calc(char *str, int i)
 						case '*':
 						case '/': b = calc(pr, next - pr); break;
 						case '+':
-						case '-': b = atoi(pr); break;
+						case '-': b = atof(pr); break;
 						default: break;
 					}
 				}
-				else b = atoi(pr);   //atoiで数を求める
+				else b = atof(pr);
 			}
-			else b = atoi(pr);   //自身の演算が乗除であった場合、先に計算
+			else b = atof(pr);
 			if (str[j] == '(')
 			{ //右辺先頭がカッコである場合
 				while (str[j] != ')')
@@ -148,7 +150,7 @@ int calc(char *str, int i)
 					if (str[j] == '\0') exit(EXIT_FAILURE);
 				}
 			}
-			else if (isdigit(str[j])) while (isdigit(str[j + 1])) j++;
+			else if (isdigit(str[j]) || str[j] == '.') while (isdigit(str[j + 1]) || str[j + 1] == '.') j++;
 			else exit(EXIT_FAILURE);
 			break;
 		}
@@ -174,23 +176,25 @@ int calc(char *str, int i)
 	}
 	exp[k] = '\0';
 
-	if (tmp >= 0) sprintf(val, "%d", tmp);
-	else sprintf(val, "(%d)", tmp);
+	if (tmp >= 0) sprintf(val, "%f", tmp);
+	else sprintf(val, "(%f)", tmp);
 	strrep(str, exp, val);
 
 	return tmp;
 }
 
-int eval(char *str)
+double eval(char *str)
 {
-	int i, tmp, count;
+	int i, count;
+	double tmp;
 	//ループ用変数i、演算結果を保存するtmp、カッコ のカウント用count
 	char *p;
 	//ポインタ操作用p
+	printf("eval: str = %s\n", str);
 
 	count = 0;
 	p = str + 1;
-	tmp = atoi(p);
+	tmp = atof(p);
 	while (1)
 	{
 		if (*p == '(') if ((tmp = eval(p)) < 0) count++;
@@ -237,7 +241,7 @@ int main(int argc, char **argv)
 	}
 
 	init(argv[1], str);
-	printf("expression:%s\nanswer:%d\n", argv[1], eval(str));
+	printf("expression:%s\nanswer:%f\n", argv[1], eval(str));
 
 	return 0;
 }
