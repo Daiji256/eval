@@ -38,6 +38,8 @@ double eval2(char *str)
 	double tmp;
 	char *p, str2[STR_LENGTH], val[50];
 
+	printf("eval: %s\n", str);
+
 	count = 0;
 	p = str + 1;
 	tmp = atof(p);
@@ -85,6 +87,8 @@ double calc(char *str, int i)
 	int j, k;
 	double tmp = 0, a, b;
 
+	printf("calc: %s\n", str);
+
 	char str2[STR_LENGTH], val[50];
 
 	char *pl, *pr, *next;
@@ -116,66 +120,75 @@ double calc(char *str, int i)
 		a = 0;
 	}
 
-	j = i + 1;
-	if (str[j] == '(')
+	for (j = i + 1; str[j] != '\0'; j++)
 	{
-		pr = str + j;
-		if (str[i] == '+' || str[i] == '-')
+		if (str[j] == '(')
 		{
-			if ((next = getoperator(pr)) != NULL)
+			if (!isoperator(str[j - 1]) && str[j - 1] != '(' && str[j - 1] != ')')
 			{
-				switch (*next)
+				while (!isoperator(str[j - 1]) && str[j - 1] != '(' && str[j - 1] != ')') j--;
+				tmp = calcfunc(str + j);
+			}
+			pr = str + j;
+			if (str[i] == '+' || str[i] == '-')
+			{
+				if ((next = getoperator(pr)) != NULL)
 				{
-					case '*':
-					case '/': b = calc(pr, next - pr); break;
-					case '+':
-					case '-': b = eval2(pr); break;
-					default: break;
+					switch (*next)
+					{
+						case '*':
+						case '/': b = calc(pr, next - pr); break;
+						case '+':
+						case '-': b = eval2(pr); break;
+						default: break;
+					}
 				}
+				else b = eval2(pr);
 			}
 			else b = eval2(pr);
-		}
-		else b = eval2(pr);
-		if (str[j] == '(')
-		{
-			while (str[j] != ')')
+			if (str[j] == '(')
 			{
-				j++;
-				if (str[j] == '\0') exit(EXIT_FAILURE);
-			}
-		}
-		else if (isnumber(str[j])) while (isnumber(str[j + 1])) j++;
-		else exit(EXIT_FAILURE);
-	}
-	else if (isnumber(str[j]))
-	{
-		pr = str + j;
-		if (str[i] == '+' || str[i] == '-')
-		{
-			if ((next = getoperator(pr)) != NULL)
-			{
-				switch (*next)
+				while (str[j] != ')')
 				{
-					case '*':
-					case '/': b = calc(pr, next - pr); break;
-					case '+':
-					case '-': b = atof(pr); break;
-					default: break;
+					j++;
+					if (str[j] == '\0') exit(EXIT_FAILURE);
 				}
 			}
-			else b = atof(pr);
+			else if (isnumber(str[j])) while (isnumber(str[j + 1])) j++;
+			else exit(EXIT_FAILURE);
+			break;
 		}
-		else b = atof(pr);
-		if (str[j] == '(')
+		else if (isnumber(str[j]))
 		{
-			while (str[j] != ')')
+			pr = str + j;
+			if (str[i] == '+' || str[i] == '-')
 			{
-				j++;
-				if (str[j] == '\0') exit(EXIT_FAILURE);
+				if ((next = getoperator(pr)) != NULL)
+				{
+					switch (*next)
+					{
+						case '*':
+						case '/': b = calc(pr, next - pr); break;
+						case '+':
+						case '-': b = atof(pr); break;
+						default: break;
+					}
+				}
+				else b = atof(pr);
 			}
+			else b = atof(pr);
+			if (str[j] == '(')
+			{
+				while (str[j] != ')')
+				{
+					j++;
+					if (str[j] == '\0') exit(EXIT_FAILURE);
+				}
+			}
+			else if (isnumber(str[j])) while (isnumber(str[j + 1])) j++;
+			else exit(EXIT_FAILURE);
+			break;
 		}
-		else if (isnumber(str[j])) while (isnumber(str[j + 1])) j++;
-		else exit(EXIT_FAILURE);
 	}
 
 	switch (str[i])
@@ -324,6 +337,8 @@ double calcfunc(char *str)
 	if (tmp >= 0) sprintf(val, "%f", tmp);
 	else sprintf(val, "(%f)", tmp);
 	strrep(str, str2, val);
+	printf("func: %s\n", str);
+
 	return tmp;
 }
 
