@@ -2,18 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <math.h>
 
 #define STR_LENGTH 1024
-enum token {NUMBER = 1, OPERATOR = 2, LEFTPAREN = 3, RIGHTPAREN = 4};
-
-struct count
-{
-	int leftparen;
-	int number;
-	int operator;
-	int sign;
-	int rightparen;
-};
 
 void strrep(char str[], const char *bef, const char *aft);
 int isoperator(char c);
@@ -50,7 +41,8 @@ double calc(char *str, int i)
 {
 	int j, k;
 	double tmp = 0, a, b;
-	printf("calc: str = %s\n", str);
+
+	printf("calc: %s\n", str);
 
 	char str2[STR_LENGTH], val[50];
 
@@ -166,18 +158,61 @@ double calc(char *str, int i)
 	return tmp;
 }
 
+double calcfunc(char *str)
+{
+	char func[10];
+	int i;
+	double tmp;
+	for (i = 0; !isoperator(*str) && *str != '(' && *str != ')'; i++)
+	{
+		func[i] = *str;
+		*str = ' ';
+		strrep(str, " ", "");
+	}
+	func[i] = '\0';
+	printf("func: %s\n", func);
+	if (strcmp("abs", func) == 0) return fabs(eval(str));
+	if (strcmp("fabs", func) == 0) return fabs(eval(str));
+	if (strcmp("sin", func) == 0) return sin(eval(str));
+	if (strcmp("cos", func) == 0) return cos(eval(str));
+	if (strcmp("tan", func) == 0) return tan(eval(str));
+	if (strcmp("asin", func) == 0) return asin(eval(str));
+	if (strcmp("acos", func) == 0) return acos(eval(str));
+	if (strcmp("atan", func) == 0) return atan(eval(str));
+	if (strcmp("sinh", func) == 0) return sinh(eval(str));
+	if (strcmp("cosh", func) == 0) return cosh(eval(str));
+	if (strcmp("tanh", func) == 0) return tanh(eval(str));
+	if (strcmp("asinh", func) == 0) return asinh(eval(str));
+	if (strcmp("acosh", func) == 0) return acosh(eval(str));
+	if (strcmp("atanh", func) == 0) return atanh(eval(str));
+	if (strcmp("exp", func) == 0) return exp(eval(str));
+	if (strcmp("log", func) == 0) return log(eval(str));
+	if (strcmp("log10", func) == 0) return log10(eval(str));
+	return 0;
+}
+
 double eval(char *str)
 {
 	int i, count;
 	double tmp;
-	char *p;
+	char *p, str2[STR_LENGTH], val[50];
+
+	printf("eval: %s\n", str);
 
 	count = 0;
 	p = str + 1;
 	tmp = atof(p);
 	while (1)
 	{
-		if (*p == '(') if ((tmp = eval(p)) < 0) count++;
+		if (*p == '(')
+		{
+			if (!isoperator(*(p - 1)) && *(p - 1) != '(' && *(p - 1) != ')')
+			{
+				while (!isoperator(*(p - 1)) && *(p - 1) != '(' && *(p - 1) != ')') p--;
+				tmp = calcfunc(p);
+			}
+			else if ((tmp = eval(p)) < 0) count++;
+		}
 		else if (*p == ')') count--;
 		else if (*p == '\0') exit(EXIT_FAILURE);
 		p++;
@@ -186,6 +221,22 @@ double eval(char *str)
 	}
 
 	while ((p = getoperator(str + 1)) != NULL) tmp = calc(str, p - str);
+
+	count = 0;
+	i = 0;
+	while (1)
+	{
+		if (str[i] == '(') count++;
+		else if (str[i] == ')') count--;
+		else if (str[i] == '\0') exit(EXIT_FAILURE);
+		str2[i] = str[i];
+		i++;
+		if (count == 0) break;
+	}
+	str2[i] = '\0';
+	if (tmp >= 0) sprintf(val, "%f", tmp);
+	else sprintf(val, "(%f)", tmp);
+	strrep(str, str2, val);
 
 	return tmp;
 }
