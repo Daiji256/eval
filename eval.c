@@ -77,15 +77,17 @@ double eval(const char *org)
 		tmp = calc(str, str2, i);
 		num2str(val, tmp);
 		strrep(str, str2, val);
+		i = 0;
 	}
 
 	for (i = 1; str[i] != '\0'; i++)
 	{
 		if (str[i] != '+' && str[i] != '-') continue;
+		if (str[i] == '-' && str[i - 1] == '(') continue;
 		tmp = calc(str, str2, i);
 		num2str(val, tmp);
 		strrep(str, str2, val);
-		if (str2[0] == '-' && val[0] == '(') i++;
+		i = 0;
 	}
 
 	while (strchr(str, '(')) strrep(str, "(", "");
