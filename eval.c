@@ -5,54 +5,19 @@
 #include <ctype.h>
 #include <math.h>
 
-void init(char str[], const char org[])
-{
-	sprintf(str, "(%s)", org);
-	while (strchr(str, ' ')) strrep(str, " ", "");
-}
-
-void strrep(char str[], const char *bef, const char *aft)
-{
-	char tmp[STR_LENGTH], *p;
-
-	p = str;
-	if ((p = strstr(p, bef)))
-	{
-		strcpy(tmp, p + strlen(bef));
-		*p = '\0';
-		strcat(str, aft);
-		strcat(str, tmp);
-	}
-}
-
-void num2str(char *str, double num)
-{
-	if (num < 0) sprintf(str, "(%f)", num);
-	else sprintf(str, "%f", num);
-}
-
 double eval(const char *org)
 {
 	int i, j, cnt, f;
 	double tmp;
 	char str[STR_LENGTH], str2[STR_LENGTH], val[16];
-	init(str, org);
+	strinit(str, org);
+
+	printf("eval str1: %s\n", str);
 
 	for (i = 1; str[i] != '\0'; i++)
 	{
 		if (str[i] != '(') continue;
-		if (!isfunc(str[i - 1]))
-		{
-			for (j = cnt = 0; cnt != 0; j++)
-			{
-				if (str[i + j] == '(') cnt++;
-				else if (str[i + j] == ')') cnt--;
-				str2[j] = str[i + j];
-			}
-			str2[j] = '\0';
-			tmp = eval(str2);
-		}
-		else if (str[i + 1] == '-')
+		if (str[i + 1] == '-')
 		{
 			f = 1;
 			for (j = 2; str[i + j] != ')'; j++)
@@ -70,11 +35,27 @@ double eval(const char *org)
 				continue;
 			}
 		}
+		else if (!isfunc(str[i - 1]))
+		{
+			for (j = 0, cnt = 1; cnt != 0; j++)
+			{
+				if (str[i + 1 + j] == '(') cnt++;
+				else if (str[i + 1 + j] == ')') cnt--;
+				str2[j] = str[i + 1 + j];
+			}
+			str2[j - 1] = '\0';
+			tmp = eval(str2);
+			str2[strlen(str2) + 1] = '\0';
+			str2[strlen(str2)] = ')';
+			for (j = strlen(str2); j >= 0; j--) str2[j + 1] = str2[j];
+			str2[0] = '(';
+		}
 		else
 		{
 			for (; isfunc(str[i - 1]); i--);
 			for (j = 0; str[i + j] != '('; j++) str2[j] = str[i + j];
-			for (cnt = 0; cnt != 0; j++)
+			str2[j] = '(';
+			for (j++, cnt = 1; cnt != 0; j++)
 			{
 				if (str[i + j] == '(') cnt++;
 				else if (str[i + j] == ')') cnt--;
@@ -87,6 +68,8 @@ double eval(const char *org)
 		strrep(str, str2, val);
 	}
 
+	printf("eval str2: %s\n", str);
+
 	for (i = 1; str[i] != '\0'; i++)
 	{
 		if (str[i] != '*' && str[i] != '/') continue;
@@ -94,45 +77,58 @@ double eval(const char *org)
 		num2str(val, tmp);
 		strrep(str, str2, val);
 	}
+
+	printf("eval str3: %s\n", str);
+
 	for (i = 1; str[i] != '\0'; i++)
 	{
 		if (str[i] != '+' && str[i] != '-') continue;
+		if (str[i] == '-' && str[i - 1] == '(') continue;
 		tmp = calc(str, str2, i);
 		num2str(val, tmp);
 		strrep(str, str2, val);
 	}
 
+	printf("eval str4: %s\n", str);
+
+	while (strchr(str, '(')) strrep(str, "(", "");
+	while (strchr(str, ')')) strrep(str, ")", "");
+	printf("eval out: %s\n", str);
+	printf("eval out: %f\n", atof(str));
+
 	return atof(str);
 }
 
-double calc(const char *str, char *str2, int op)
+double calc(const char *org, char *str, int op)
 {
 	int l, r, i;
 	double tmp;
 	char a[STR_LENGTH], b[STR_LENGTH];
 
+	printf("calc: %s\n", org);
+
 	l = op - 1;
-	if (str[l] == ')')
+	if (org[l] == ')')
 	{
-		while (str[l] != '(')
+		while (org[l] != '(')
 		{
 			l--;
 			if (l < 0) exit(EXIT_FAILURE);
 		}
-		for (i = 0; l + 1 + i < op - 1; i++) a[i] = str[l + 1 + i];
+		for (i = 0; l + 1 + i < op - 1; i++) a[i] = org[l + 1 + i];
 		a[i] = '\0';
 	}
-	else if (isnumber(str[l]))
+	else if (isnumber(org[l]))
 	{
-		while (isnumber(str[l - 1]))
+		while (isnumber(org[l - 1]))
 		{
 			l--;
 			if (l < 0) exit(EXIT_FAILURE);
 		}
-		for (i = 0; l + i < op; i++) a[i] = str[l + i];
+		for (i = 0; l + i < op; i++) a[i] = org[l + i];
 		a[i] = '\0';
 	}
-	else if (str[l] == '(')
+	else if (org[l] == '(')
 	{
 		l = op;
 		a[0] = '0';
@@ -140,46 +136,50 @@ double calc(const char *str, char *str2, int op)
 	}
 
 	r = op + 1;
-	if (str[r] == '(')
+	if (org[r] == '(')
 	{
-		while (str[r] != ')')
+		while (org[r] != ')')
 		{
 			r++;
-			if (str[r] == '\0') exit(EXIT_FAILURE);
+			if (org[r] == '\0') exit(EXIT_FAILURE);
 		}
-		for (i = 0; op + 2 + i <= r - 1; i++) a[i] = str[op + 2 + i];
+		for (i = 0; op + 2 + i <= r - 1; i++) a[i] = org[op + 2 + i];
 		b[i] = '\0';
 	}
-	else if (isnumber(str[r]))
+	else if (isnumber(org[r]))
 	{
-		while (isnumber(str[r + 1]))
+		while (isnumber(org[r + 1]))
 		{
 			r++;
-			if (str[r] == '\0') exit(EXIT_FAILURE);
+			if (org[r] == '\0') exit(EXIT_FAILURE);
 		}
-		for (i = 0; op + 1 + i <= r; i++) a[i] = str[op + 1 + i];
+		for (i = 0; op + 1 + i <= r; i++) b[i] = org[op + 1 + i];
 		b[i] = '\0';
 	}
 
-	for (i = 0; l + i <= r; i++) str2[i] = str[l + i];
-	str2[i] = '\0';
+	for (i = 0; l + i <= r; i++) str[i] = org[l + i];
+	str[i] = '\0';
 
-	switch (str[op])
+	switch (org[op])
 	{
 		case '+': tmp = atof(a) + atof(b); break;
 		case '-': tmp = atof(a) - atof(b); break;
 		case '*': tmp = atof(a) * atof(b); break;
 		case '/': tmp = atof(a) / atof(b); break;
-		default: tmp = 0;
+		default: tmp = 0; break;
 	}
+
+	//printf("calc: %s, %f\n", str, tmp);
 
 	return tmp;
 }
 
-double calcfunc(char *org)
+double calcfunc(const char *org)
 {
 	char func[10], x[STR_LENGTH], y[STR_LENGTH];
 	int i, j, cnt;
+
+	printf("func: %s\n", org);
 
 	for (i = 0; isfunc(org[i]); i++) func[i] = org[i];
 	func[i] = '\0';
@@ -253,6 +253,32 @@ double calcfunc(char *org)
 	return 0;
 }
 
+void strinit(char *str, const char *org)
+{
+	sprintf(str, "(%s)", org);
+	while (strchr(str, ' ')) strrep(str, " ", "");
+}
+
+void strrep(char *str, const char *bef, const char *aft)
+{
+	char tmp[STR_LENGTH], *p;
+
+	p = str;
+	if ((p = strstr(p, bef)))
+	{
+		strcpy(tmp, p + strlen(bef));
+		*p = '\0';
+		strcat(str, aft);
+		strcat(str, tmp);
+	}
+}
+
+void num2str(char *str, double num)
+{
+	if (num < 0) sprintf(str, "(%f)", num);
+	else sprintf(str, "%f", num);
+}
+
 int isnumber(char c)
 {
 	if (isdigit(c) || c == '.') return 1;
@@ -269,17 +295,4 @@ int isfunc(char c)
 {
 	if (!isoperator(c) && c != '(' && c != ')') return 1;
 	return 0;
-}
-
-char *getoperator(char *str)
-{
-	int i, count = 0;
-
-	for (i = 0; (count != 0 || str[i] != ')') && str[i] != '\0'; i++)
-	{
-		if (count == 0 && isoperator(str[i])) return &str[i];
-		else if (str[i] == '(') count++;
-		else if (str[i] == ')') count--;
-	}
-	return NULL;
 }
