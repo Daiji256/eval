@@ -5,10 +5,10 @@
 #include <ctype.h>
 #include <math.h>
 
-void init(const char in[], char out[])
+void init(char str[], const char org[])
 {
-	sprintf(out, "(%s)", in);
-	while (strchr(out, ' ')) strrep(out, " ", "");
+	sprintf(str, "(%s)", org);
+	while (strchr(str, ' ')) strrep(str, " ", "");
 }
 
 void strrep(char str[], const char *bef, const char *aft)
@@ -25,321 +25,232 @@ void strrep(char str[], const char *bef, const char *aft)
 	}
 }
 
-double eval(char *str)
+void num2str(char *str, double num)
 {
-	char str2[STR_LENGTH];
-	init(str, str2);
-	return eval2(str2);
+	if (num < 0) sprintf(str, "(%f)", num);
+	else sprintf(str, "%f", num);
 }
 
-double eval2(char *str)
+double eval(const char *org)
 {
-	int i, count;
+	int i, j, cnt, f;
 	double tmp;
-	char *p, str2[STR_LENGTH], val[50];
+	char str[STR_LENGTH], str2[STR_LENGTH], val[16];
+	init(str, org);
 
-	printf("eval: %s\n", str);
-
-	count = 0;
-	p = str + 1;
-	tmp = atof(p);
-	while (1)
+	for (i = 1; str[i] != '\0'; i++)
 	{
-		if (*p == '(')
+		if (str[i] != '(') continue;
+		if (!isfunc(str[i - 1]))
 		{
-			if (!isoperator(*(p - 1)) && *(p - 1) != '(' && *(p - 1) != ')')
+			for (j = cnt = 0; cnt != 0; j++)
 			{
-				while (!isoperator(*(p - 1)) && *(p - 1) != '(' && *(p - 1) != ')') p--;
-				tmp = calcfunc(p);
+				if (str[i + j] == '(') cnt++;
+				else if (str[i + j] == ')') cnt--;
+				str2[j] = str[i + j];
 			}
-			else if ((tmp = eval2(p)) < 0) count++;
+			str2[j] = '\0';
+			tmp = eval(str2);
 		}
-		else if (*p == ')') count--;
-		else if (*p == '\0') exit(EXIT_FAILURE);
-		p++;
-		if (count < 0) exit(EXIT_FAILURE);
-		if (count == 0 && *p == ')') break;
+		else if (str[i + 1] == '-')
+		{
+			f = 1;
+			for (j = 2; str[i + j] != ')'; j++)
+			{
+				if (str[i + j] == '\0') exit(EXIT_FAILURE);
+				if (!isnumber(str[i + j]))
+				{
+					f = 0;
+					break;
+				}
+			}
+			if (f)
+			{
+				i += j;
+				continue;
+			}
+		}
+		else
+		{
+			for (; isfunc(str[i - 1]); i--);
+			for (j = 0; str[i + j] != '('; j++) str2[j] = str[i + j];
+			for (cnt = 0; cnt != 0; j++)
+			{
+				if (str[i + j] == '(') cnt++;
+				else if (str[i + j] == ')') cnt--;
+				str2[j] = str[i + j];
+			}
+			str2[j] = '\0';
+			tmp = calcfunc(str2);
+		}
+		num2str(val, tmp);
+		strrep(str, str2, val);
 	}
 
-	while ((p = getoperator(str + 1)) != NULL) tmp = calc(str, p - str);
-
-	count = 0;
-	i = 0;
-	while (1)
+	for (i = 1; str[i] != '\0'; i++)
 	{
-		if (str[i] == '(') count++;
-		else if (str[i] == ')') count--;
-		else if (str[i] == '\0') exit(EXIT_FAILURE);
-		str2[i] = str[i];
-		i++;
-		if (count == 0) break;
+		if (str[i] != '*' && str[i] != '/') continue;
+		tmp = calc(str, str2, i);
+		num2str(val, tmp);
+		strrep(str, str2, val);
 	}
+	for (i = 1; str[i] != '\0'; i++)
+	{
+		if (str[i] != '+' && str[i] != '-') continue;
+		tmp = calc(str, str2, i);
+		num2str(val, tmp);
+		strrep(str, str2, val);
+	}
+
+	return atof(str);
+}
+
+double calc(const char *str, char *str2, int op)
+{
+	int l, r, i;
+	double tmp;
+	char a[STR_LENGTH], b[STR_LENGTH];
+
+	l = op - 1;
+	if (str[l] == ')')
+	{
+		while (str[l] != '(')
+		{
+			l--;
+			if (l < 0) exit(EXIT_FAILURE);
+		}
+		for (i = 0; l + 1 + i < op - 1; i++) a[i] = str[l + 1 + i];
+		a[i] = '\0';
+	}
+	else if (isnumber(str[l]))
+	{
+		while (isnumber(str[l - 1]))
+		{
+			l--;
+			if (l < 0) exit(EXIT_FAILURE);
+		}
+		for (i = 0; l + i < op; i++) a[i] = str[l + i];
+		a[i] = '\0';
+	}
+	else if (str[l] == '(')
+	{
+		l = op;
+		a[0] = '0';
+		a[1] = '\0';
+	}
+
+	r = op + 1;
+	if (str[r] == '(')
+	{
+		while (str[r] != ')')
+		{
+			r++;
+			if (str[r] == '\0') exit(EXIT_FAILURE);
+		}
+		for (i = 0; op + 2 + i <= r - 1; i++) a[i] = str[op + 2 + i];
+		b[i] = '\0';
+	}
+	else if (isnumber(str[r]))
+	{
+		while (isnumber(str[r + 1]))
+		{
+			r++;
+			if (str[r] == '\0') exit(EXIT_FAILURE);
+		}
+		for (i = 0; op + 1 + i <= r; i++) a[i] = str[op + 1 + i];
+		b[i] = '\0';
+	}
+
+	for (i = 0; l + i <= r; i++) str2[i] = str[l + i];
 	str2[i] = '\0';
-	if (tmp >= 0) sprintf(val, "%f", tmp);
-	else sprintf(val, "(%f)", tmp);
-	strrep(str, str2, val);
+
+	switch (str[op])
+	{
+		case '+': tmp = atof(a) + atof(b); break;
+		case '-': tmp = atof(a) - atof(b); break;
+		case '*': tmp = atof(a) * atof(b); break;
+		case '/': tmp = atof(a) / atof(b); break;
+		default: tmp = 0;
+	}
 
 	return tmp;
 }
 
-double calc(char *str, int i)
+double calcfunc(char *org)
 {
-	int j, k;
-	double tmp = 0, a, b;
+	char func[10], x[STR_LENGTH], y[STR_LENGTH];
+	int i, j, cnt;
 
-	printf("calc: %s\n", str);
-
-	char str2[STR_LENGTH], val[50];
-
-	char *pl, *pr, *next;
-
-	j = i - 1;
-	if (str[j] == ')')
-	{
-		while (str[j] != '(')
-		{
-			j--;
-			if (j == -1) exit(EXIT_FAILURE);
-		}
-		pl = str + j;
-		a = eval2(pl);
-	}
-	else if (isnumber(str[j]))
-	{
-		while (isnumber(str[j - 1]))
-		{
-			j--;
-			if (j == -1) exit(EXIT_FAILURE);
-		}
-		pl = str + j;
-		a = atof(pl);
-	}
-	else if (str[j] == '(')
-	{
-		pl = str + j + 1;
-		a = 0;
-	}
-
-	for (j = i + 1; str[j] != '\0'; j++)
-	{
-		if (str[j] == '(')
-		{
-			if (!isoperator(str[j - 1]) && str[j - 1] != '(' && str[j - 1] != ')')
-			{
-				while (!isoperator(str[j - 1]) && str[j - 1] != '(' && str[j - 1] != ')') j--;
-				tmp = calcfunc(str + j);
-			}
-			pr = str + j;
-			if (str[i] == '+' || str[i] == '-')
-			{
-				if ((next = getoperator(pr)) != NULL)
-				{
-					switch (*next)
-					{
-						case '*':
-						case '/': b = calc(pr, next - pr); break;
-						case '+':
-						case '-': b = eval2(pr); break;
-						default: break;
-					}
-				}
-				else b = eval2(pr);
-			}
-			else b = eval2(pr);
-			if (str[j] == '(')
-			{
-				while (str[j] != ')')
-				{
-					j++;
-					if (str[j] == '\0') exit(EXIT_FAILURE);
-				}
-			}
-			else if (isnumber(str[j])) while (isnumber(str[j + 1])) j++;
-			else exit(EXIT_FAILURE);
-			break;
-		}
-		else if (isnumber(str[j]))
-		{
-			pr = str + j;
-			if (str[i] == '+' || str[i] == '-')
-			{
-				if ((next = getoperator(pr)) != NULL)
-				{
-					switch (*next)
-					{
-						case '*':
-						case '/': b = calc(pr, next - pr); break;
-						case '+':
-						case '-': b = atof(pr); break;
-						default: break;
-					}
-				}
-				else b = atof(pr);
-			}
-			else b = atof(pr);
-			if (str[j] == '(')
-			{
-				while (str[j] != ')')
-				{
-					j++;
-					if (str[j] == '\0') exit(EXIT_FAILURE);
-				}
-			}
-			else if (isnumber(str[j])) while (isnumber(str[j + 1])) j++;
-			else exit(EXIT_FAILURE);
-			break;
-		}
-	}
-
-	switch (str[i])
-	{
-		case '+': tmp = a + b; break;
-		case '-': tmp = a - b; break;
-		case '*': tmp = a * b; break;
-		case '/': if (b == 0) exit(EXIT_FAILURE); else tmp = a / b; break;
-		default: break;
-	}
-
-	for (k = 0; pl + k <= str + j; k++) str2[k] = pl[k];
-	str2[k] = '\0';
-
-	if (tmp >= 0) sprintf(val, "%f", tmp);
-	else sprintf(val, "(%f)", tmp);
-	strrep(str, str2, val);
-
-	return tmp;
-}
-
-double calcfunc(char *str)
-{
-	char func[10], x[STR_LENGTH], y[STR_LENGTH], str2[STR_LENGTH], val[50];
-	int i, j, k, count;;
-	double tmp = 0;
-	for (i = 0; !isoperator(str[i]) && str[i] != '(' && str[i] != ')'; i++) func[i] = str2[i] = str[i];
+	for (i = 0; isfunc(org[i]); i++) func[i] = org[i];
 	func[i] = '\0';
-	if (strcmp("abs", func) == 0 || \
-		strcmp("fabs", func) == 0 || \
-		strcmp("sqrt", func) == 0 || \
-		strcmp("cbrt", func) == 0 || \
-		strcmp("sin", func) == 0 || \
-		strcmp("cos", func) == 0 || \
-		strcmp("tan", func) == 0 || \
-		strcmp("asin", func) == 0 || \
-		strcmp("acos", func) == 0 || \
-		strcmp("atan", func) == 0 || \
-		strcmp("sinh", func) == 0 || \
-		strcmp("cosh", func) == 0 || \
-		strcmp("tanh", func) == 0 || \
-		strcmp("asinh", func) == 0 || \
-		strcmp("acosh", func) == 0 || \
-		strcmp("atanh", func) == 0 || \
-		strcmp("exp", func) == 0 || \
-		strcmp("log", func) == 0 || \
-		strcmp("log10", func) == 0 || \
-		strcmp("ceil", func) == 0 || \
-		strcmp("floor", func) == 0 || \
-		strcmp("round", func) == 0)
-	{
-		str2[i] = str[i];
-		x[0] = '(';
-		count = 0;
-		for (j = 1; count != 0 || str[i + j] != ')'; j++)
-		{
-			if (str[i + j] == '(') count++;
-			else if (str[i + j] == ')') count--;
-			else if (str[i + j] == '\0') exit(EXIT_FAILURE);
-			str2[i + j] = str[i + j];
-			x[j] = str[i + j];
-		}
-		str2[i + j] = str[i + j];
-		str2[i + j + 1] = '\0';
-		x[j] = ')';
-		x[j + 1] = '\0';
 
-		if (strcmp("abs", func) == 0) tmp = fabs(eval2(x));
-		else if (strcmp("fabs", func) == 0) tmp = fabs(eval2(x));
-		else if (strcmp("sqrt", func) == 0) tmp = sqrt(eval2(x));
-		else if (strcmp("cbrt", func) == 0) tmp = cbrt(eval2(x));
-		else if (strcmp("sin", func) == 0) tmp = sin(eval2(x));
-		else if (strcmp("cos", func) == 0) tmp = cos(eval2(x));
-		else if (strcmp("tan", func) == 0) tmp = tan(eval2(x));
-		else if (strcmp("asin", func) == 0) tmp = asin(eval2(x));
-		else if (strcmp("acos", func) == 0) tmp = acos(eval2(x));
-		else if (strcmp("atan", func) == 0) tmp = atan(eval2(x));
-		else if (strcmp("sinh", func) == 0) tmp = sinh(eval2(x));
-		else if (strcmp("cosh", func) == 0) tmp = cosh(eval2(x));
-		else if (strcmp("tanh", func) == 0) tmp = tanh(eval2(x));
-		else if (strcmp("asinh", func) == 0) tmp = asinh(eval2(x));
-		else if (strcmp("acosh", func) == 0) tmp = acosh(eval2(x));
-		else if (strcmp("atanh", func) == 0) tmp = atanh(eval2(x));
-		else if (strcmp("exp", func) == 0) tmp = exp(eval2(x));
-		else if (strcmp("log", func) == 0) tmp = log(eval2(x));
-		else if (strcmp("log10", func) == 0) tmp = log10(eval2(x));
-		else if (strcmp("ceil", func) == 0) tmp = ceil(eval2(x));
-		else if (strcmp("floor", func) == 0) tmp = floor(eval2(x));
-		else if (strcmp("round", func) == 0) tmp = round(eval2(x));
+	if (strcmp("abs", func) == 0 || strcmp("fabs", func) == 0 || strcmp("sqrt", func) == 0 || strcmp("sin", func) == 0 || strcmp("cos", func) == 0 || strcmp("tan", func) == 0 || strcmp("asin", func) == 0 || strcmp("acos", func) == 0 || strcmp("atan", func) == 0 || strcmp("sinh", func) == 0 || strcmp("cosh", func) == 0 || strcmp("tanh", func) == 0 || strcmp("asinh", func) == 0 || strcmp("acosh", func) == 0 || strcmp("atanh", func) == 0 || strcmp("exp", func) == 0 || strcmp("log", func) == 0 || strcmp("log10", func) == 0 || strcmp("ceil", func) == 0 || strcmp("floor", func) == 0 || strcmp("round", func) == 0)
+	{
+		for (i++, j = cnt = 0; cnt > 0 || org[i + j] != ')'; j++)
+		{
+			if (org[i + j] == '(') cnt++;
+			else if (org[i + j] == ')') cnt--;
+			else if (org[i + j] == '\0') exit(EXIT_FAILURE);
+			x[j] = org[i + j];
+		}
+		x[j] = '\0';
+
+		if (strcmp("abs", func) == 0) return fabs(eval(x));
+		else if (strcmp("fabs", func) == 0) return fabs(eval(x));
+		else if (strcmp("sqrt", func) == 0) return sqrt(eval(x));
+		else if (strcmp("sin", func) == 0) return sin(eval(x));
+		else if (strcmp("cos", func) == 0) return cos(eval(x));
+		else if (strcmp("tan", func) == 0) return tan(eval(x));
+		else if (strcmp("asin", func) == 0) return asin(eval(x));
+		else if (strcmp("acos", func) == 0) return acos(eval(x));
+		else if (strcmp("atan", func) == 0) return atan(eval(x));
+		else if (strcmp("sinh", func) == 0) return sinh(eval(x));
+		else if (strcmp("cosh", func) == 0) return cosh(eval(x));
+		else if (strcmp("tanh", func) == 0) return tanh(eval(x));
+		else if (strcmp("asinh", func) == 0) return asinh(eval(x));
+		else if (strcmp("acosh", func) == 0) return acosh(eval(x));
+		else if (strcmp("atanh", func) == 0) return atanh(eval(x));
+		else if (strcmp("exp", func) == 0) return exp(eval(x));
+		else if (strcmp("log", func) == 0) return log(eval(x));
+		else if (strcmp("log10", func) == 0) return log10(eval(x));
+		else if (strcmp("ceil", func) == 0) return ceil(eval(x));
+		else if (strcmp("floor", func) == 0) return floor(eval(x));
+		else if (strcmp("round", func) == 0) return round(eval(x));
 	}
 
-	if (strcmp("pow", func) == 0 || \
-		strcmp("atan2", func) == 0 || \
-		strcmp("hypot", func) == 0 || \
-		strcmp("mod", func) == 0 || \
-		strcmp("fmod", func) == 0 || \
-		strcmp("dim", func) == 0 || \
-		strcmp("fdim", func) == 0 || \
-		strcmp("max", func) == 0 || \
-		strcmp("fmax", func) == 0 || \
-		strcmp("min", func) == 0 || \
-		strcmp("fmin", func) == 0)
+	if (strcmp("pow", func) == 0 || strcmp("atan2", func) == 0 || strcmp("hypot", func) == 0 || strcmp("mod", func) == 0 || strcmp("fmod", func) == 0 || strcmp("dim", func) == 0 || strcmp("fdim", func) == 0 || strcmp("max", func) == 0 || strcmp("fmax", func) == 0 || strcmp("min", func) == 0 || strcmp("fmin", func) == 0)
 	{
-		str2[i] = str[i];
-		x[0] = '(';
-		count = 0;
-		for (j = 1; count != 0 || str[i + j] != ','; j++)
+		for (i++, j = cnt = 0; cnt > 0 || org[i + j] != ','; j++)
 		{
-			if (str[i + j] == '(') count++;
-			else if (str[i + j] == ')') count--;
-			else if (str[i + j] == '\0') exit(EXIT_FAILURE);
-			str2[i + j] = str[i + j];
-			x[j] = str[i + j];
+			if (org[i + j] == '(') cnt++;
+			else if (org[i + j] == ')') cnt--;
+			else if (org[i + j] == '\0') exit(EXIT_FAILURE);
+			x[j] = org[i + j];
 		}
-		str2[i + j] = str[i + j];
-		x[j] = ')';
-		x[j + 1] = '\0';
-		y[0] = '(';
-		count = 0;
-		for (k = 1; count != 0 || str[i + j + k] != ')'; k++)
+		x[j] = '\0';
+		for (i += j + 1, j = cnt = 0; cnt > 0 || org[i + j] != ')'; j++)
 		{
-			if (str[i + j + k] == '(') count++;
-			else if (str[i + j + k] == ')') count--;
-			else if (str[i + j + k] == '\0') exit(EXIT_FAILURE);
-			y[k] = str[i + j + k];
-			str2[i + j + k] = str[i + j + k];
+			if (org[i + j] == '(') cnt++;
+			else if (org[i + j] == ')') cnt--;
+			else if (org[i + j] == '\0') exit(EXIT_FAILURE);
+			y[j] = org[i + j];
 		}
-		str2[i + j + k] = str[i + j + k];
-		str2[i + j + k + 1] = '\0';
-		y[k] = ')';
-		y[k + 1] = '\0';
+		y[j] = '\0';
 
-		if (strcmp("pow", func) == 0) tmp = pow(eval2(x), eval2(y));
-		else if (strcmp("atan2", func) == 0) tmp = atan2(eval2(x), eval2(y));
-		else if (strcmp("hypot", func) == 0) tmp = hypot(eval2(x), eval2(y));
-		else if (strcmp("mod", func) == 0) tmp = fmod(eval2(x), eval2(y));
-		else if (strcmp("fmod", func) == 0) tmp = fmod(eval2(x), eval2(y));
-		else if (strcmp("dim", func) == 0) tmp = fdim(eval2(x), eval2(y));
-		else if (strcmp("fdim", func) == 0) tmp = fdim(eval2(x), eval2(y));
-		else if (strcmp("max", func) == 0) tmp = fmax(eval2(x), eval2(y));
-		else if (strcmp("fmax", func) == 0) tmp = fmax(eval2(x), eval2(y));
-		else if (strcmp("min", func) == 0) tmp = fmin(eval2(x), eval2(y));
-		else if (strcmp("fmin", func) == 0) tmp = fmin(eval2(x), eval2(y));
+		if (strcmp("pow", func) == 0) return pow(eval(x), eval(y));
+		else if (strcmp("atan2", func) == 0) return atan2(eval(x), eval(y));
+		else if (strcmp("hypot", func) == 0) return hypot(eval(x), eval(y));
+		else if (strcmp("mod", func) == 0) return fmod(eval(x), eval(y));
+		else if (strcmp("fmod", func) == 0) return fmod(eval(x), eval(y));
+		else if (strcmp("dim", func) == 0) return fdim(eval(x), eval(y));
+		else if (strcmp("fdim", func) == 0) return fdim(eval(x), eval(y));
+		else if (strcmp("max", func) == 0) return fmax(eval(x), eval(y));
+		else if (strcmp("fmax", func) == 0) return fmax(eval(x), eval(y));
+		else if (strcmp("min", func) == 0) return fmin(eval(x), eval(y));
+		else if (strcmp("fmin", func) == 0) return fmin(eval(x), eval(y));
 	}
 
-	if (tmp >= 0) sprintf(val, "%f", tmp);
-	else sprintf(val, "(%f)", tmp);
-	strrep(str, str2, val);
-	printf("func: %s\n", str);
-
-	return tmp;
+	return 0;
 }
 
 int isnumber(char c)
@@ -351,6 +262,12 @@ int isnumber(char c)
 int isoperator(char c)
 {
 	if (c == '+' || c == '-' || c == '*' || c == '/') return 1;
+	return 0;
+}
+
+int isfunc(char c)
+{
+	if (!isoperator(c) && c != '(' && c != ')') return 1;
 	return 0;
 }
 
