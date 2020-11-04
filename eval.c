@@ -12,8 +12,6 @@ double eval(const char *org)
 	char str[STR_LENGTH], str2[STR_LENGTH], val[16];
 	strinit(str, org);
 
-	printf("eval: %s\n", org);
-
 	for (i = 1; str[i] != '\0'; i++)
 	{
 		if (str[i] != '(') continue;
@@ -92,7 +90,6 @@ double eval(const char *org)
 
 	while (strchr(str, '(')) strrep(str, "(", "");
 	while (strchr(str, ')')) strrep(str, ")", "");
-	printf("eval out: %f\n", atof(str));
 
 	return atof(str);
 }
@@ -102,8 +99,6 @@ double calc(const char *org, char *str, int op)
 	int l, r, i;
 	double tmp;
 	char a[STR_LENGTH], b[STR_LENGTH];
-
-	printf("calc: %s, %c\n", org, org[op]);
 
 	l = op - 1;
 	if (org[l] == ')')
@@ -168,9 +163,6 @@ double calc(const char *org, char *str, int op)
 		default: tmp = 0; break;
 	}
 
-	printf("a, b: %s, %s\n", a, b);
-	printf("calc: %s, %f\n", str, tmp);
-
 	return tmp;
 }
 
@@ -178,8 +170,6 @@ double calcfunc(const char *org)
 {
 	char func[10], x[STR_LENGTH], y[STR_LENGTH];
 	int i, j, cnt;
-
-	printf("func: %s\n", org);
 
 	for (i = 0; isfunc(org[i]); i++) func[i] = org[i];
 	func[i] = '\0';
