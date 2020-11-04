@@ -12,43 +12,46 @@ double eval(const char *org)
 	char str[STR_LENGTH], str2[STR_LENGTH], val[16];
 	strinit(str, org);
 
-	printf("eval str1: %s\n", str);
+	printf("eval: %s\n", org);
 
 	for (i = 1; str[i] != '\0'; i++)
 	{
 		if (str[i] != '(') continue;
-		if (str[i + 1] == '-')
+		if (!isfunc(str[i - 1]))
 		{
-			f = 1;
-			for (j = 2; str[i + j] != ')'; j++)
+			if (str[i + 1] == '-')
 			{
-				if (str[i + j] == '\0') exit(EXIT_FAILURE);
-				if (!isnumber(str[i + j]))
+				f = 1;
+				for (j = 2; str[i + j] != ')'; j++)
 				{
-					f = 0;
-					break;
+					if (str[i + j] == '\0') exit(EXIT_FAILURE);
+					if (!isnumber(str[i + j]))
+					{
+						f = 0;
+						break;
+					}
+				}
+				if (f)
+				{
+					i += j;
+					continue;
 				}
 			}
-			if (f)
+			else
 			{
-				i += j;
-				continue;
+				for (j = 0, cnt = 1; cnt != 0; j++)
+				{
+					if (str[i + 1 + j] == '(') cnt++;
+					else if (str[i + 1 + j] == ')') cnt--;
+					str2[j] = str[i + 1 + j];
+				}
+				str2[j - 1] = '\0';
+				tmp = eval(str2);
+				str2[strlen(str2) + 1] = '\0';
+				str2[strlen(str2)] = ')';
+				for (j = strlen(str2); j >= 0; j--) str2[j + 1] = str2[j];
+				str2[0] = '(';
 			}
-		}
-		else if (!isfunc(str[i - 1]))
-		{
-			for (j = 0, cnt = 1; cnt != 0; j++)
-			{
-				if (str[i + 1 + j] == '(') cnt++;
-				else if (str[i + 1 + j] == ')') cnt--;
-				str2[j] = str[i + 1 + j];
-			}
-			str2[j - 1] = '\0';
-			tmp = eval(str2);
-			str2[strlen(str2) + 1] = '\0';
-			str2[strlen(str2)] = ')';
-			for (j = strlen(str2); j >= 0; j--) str2[j + 1] = str2[j];
-			str2[0] = '(';
 		}
 		else
 		{
@@ -68,8 +71,6 @@ double eval(const char *org)
 		strrep(str, str2, val);
 	}
 
-	printf("eval str2: %s\n", str);
-
 	for (i = 1; str[i] != '\0'; i++)
 	{
 		if (str[i] != '*' && str[i] != '/') continue;
@@ -78,22 +79,17 @@ double eval(const char *org)
 		strrep(str, str2, val);
 	}
 
-	printf("eval str3: %s\n", str);
-
 	for (i = 1; str[i] != '\0'; i++)
 	{
 		if (str[i] != '+' && str[i] != '-') continue;
-		if (str[i] == '-' && str[i - 1] == '(') continue;
 		tmp = calc(str, str2, i);
 		num2str(val, tmp);
 		strrep(str, str2, val);
+		if (str2[0] == '-' && val[0] == '(') i++;
 	}
-
-	printf("eval str4: %s\n", str);
 
 	while (strchr(str, '(')) strrep(str, "(", "");
 	while (strchr(str, ')')) strrep(str, ")", "");
-	printf("eval out: %s\n", str);
 	printf("eval out: %f\n", atof(str));
 
 	return atof(str);
@@ -105,7 +101,7 @@ double calc(const char *org, char *str, int op)
 	double tmp;
 	char a[STR_LENGTH], b[STR_LENGTH];
 
-	printf("calc: %s\n", org);
+	printf("calc: %s, %c\n", org, org[op]);
 
 	l = op - 1;
 	if (org[l] == ')')
@@ -125,6 +121,7 @@ double calc(const char *org, char *str, int op)
 			l--;
 			if (l < 0) exit(EXIT_FAILURE);
 		}
+		if (org[l - 1] == '-' && org[l - 2] == '(') l--;
 		for (i = 0; l + i < op; i++) a[i] = org[l + i];
 		a[i] = '\0';
 	}
@@ -143,7 +140,7 @@ double calc(const char *org, char *str, int op)
 			r++;
 			if (org[r] == '\0') exit(EXIT_FAILURE);
 		}
-		for (i = 0; op + 2 + i <= r - 1; i++) a[i] = org[op + 2 + i];
+		for (i = 0; op + 2 + i <= r - 1; i++) b[i] = org[op + 2 + i];
 		b[i] = '\0';
 	}
 	else if (isnumber(org[r]))
@@ -169,7 +166,8 @@ double calc(const char *org, char *str, int op)
 		default: tmp = 0; break;
 	}
 
-	//printf("calc: %s, %f\n", str, tmp);
+	printf("a, b: %s, %s\n", a, b);
+	printf("calc: %s, %f\n", str, tmp);
 
 	return tmp;
 }
@@ -218,7 +216,7 @@ double calcfunc(const char *org)
 		else if (strcmp("round", func) == 0) return round(eval(x));
 	}
 
-	if (strcmp("pow", func) == 0 || strcmp("atan2", func) == 0 || strcmp("hypot", func) == 0 || strcmp("mod", func) == 0 || strcmp("fmod", func) == 0 || strcmp("dim", func) == 0 || strcmp("fdim", func) == 0 || strcmp("max", func) == 0 || strcmp("fmax", func) == 0 || strcmp("min", func) == 0 || strcmp("fmin", func) == 0)
+	if (strcmp("pow", func) == 0 || strcmp("atan2", func) == 0 || strcmp("hypot", func) == 0 || strcmp("mod", func) == 0 || strcmp("fmod", func) == 0)
 	{
 		for (i++, j = cnt = 0; cnt > 0 || org[i + j] != ','; j++)
 		{
@@ -242,12 +240,6 @@ double calcfunc(const char *org)
 		else if (strcmp("hypot", func) == 0) return hypot(eval(x), eval(y));
 		else if (strcmp("mod", func) == 0) return fmod(eval(x), eval(y));
 		else if (strcmp("fmod", func) == 0) return fmod(eval(x), eval(y));
-		else if (strcmp("dim", func) == 0) return fdim(eval(x), eval(y));
-		else if (strcmp("fdim", func) == 0) return fdim(eval(x), eval(y));
-		else if (strcmp("max", func) == 0) return fmax(eval(x), eval(y));
-		else if (strcmp("fmax", func) == 0) return fmax(eval(x), eval(y));
-		else if (strcmp("min", func) == 0) return fmin(eval(x), eval(y));
-		else if (strcmp("fmin", func) == 0) return fmin(eval(x), eval(y));
 	}
 
 	return 0;
