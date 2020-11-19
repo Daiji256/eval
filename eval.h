@@ -1,5 +1,5 @@
-#if !defined(EVAL_H)
-#define EVAL_H
+#ifndef _EVAL_H_
+#define _EVAL_H_
 
 #define STR_LENGTH 1024
 
@@ -13,4 +13,4 @@ int isnumber(char c);
 int isoperator(char c);
 int isfunc(char c);
 
-#endif /* EVAL_H */
+#endif /* _EVAL_H_ */
